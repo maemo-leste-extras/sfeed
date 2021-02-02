@@ -1,4 +1,4 @@
-sfeed (0.9.21-1) unstable; urgency=medium
+sfeed (0.9.21+leste-1) unstable; urgency=medium
 
   * Initial Leste packaging.
 
