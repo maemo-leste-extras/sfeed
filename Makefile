@@ -4,8 +4,8 @@ NAME = sfeed
 VERSION = 0.9.21
 
 # paths
-PREFIX = /usr/local
-MANPREFIX = ${PREFIX}/man
+PREFIX = /usr
+MANPREFIX = ${PREFIX}/share/man
 DOCPREFIX = ${PREFIX}/share/doc/${NAME}
 
 RANLIB = ranlib
