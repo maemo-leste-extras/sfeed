@@ -1,0 +1,15 @@
+Source: sfeed
+Priority: optional
+Section: user/network
+Maintainer: Ivan J. <parazyd@dyne.org>
+Build-Depends:
+ debhelper-compat (= 12),
+ maemo-system-services-dev,
+Vcs-Git: https://github.com/maemo-leste-extras/sfeed
+Vcs-Browser: https://github.com/maemo-leste-extras/sfeed
+
+Package: sfeed
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: RSS and Atom parser
+XB-Maemo-Icon-26: ${maemo:icon26}
