@@ -10,6 +10,6 @@ Vcs-Browser: https://github.com/maemo-leste-extras/sfeed
 
 Package: sfeed
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, curl
 Description: RSS and Atom parser
 XB-Maemo-Icon-26: ${maemo:icon26}
