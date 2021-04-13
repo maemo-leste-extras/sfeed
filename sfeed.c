@@ -204,7 +204,8 @@ static int fieldmap[TagLast] = {
 static const int FieldSeparator = '\t';
 /* separator for multiple values in a field, separator should be 1 byte */
 static const char *FieldMultiSeparator = "|";
-static const char *baseurl = "";
+static struct uri baseuri;
+static const char *baseurl;
 
 static FeedContext ctx;
 static XMLParser parser; /* XML parser state */
@@ -381,23 +382,33 @@ string_print_trimmed_multi(String *s)
 	}
 }
 
-/* always print absolute urls (using global baseurl) */
+/* always print absolute URLs (using global baseurl) */
 void
 printuri(char *s)
 {
 	char link[4096], *p, *e;
-	int c;
+	struct uri newuri, olduri;
+	int c, r = -1;
 
 	p = ltrim(s);
 	e = rtrim(p);
 	c = *e;
 	*e = '\0';
-	if (absuri(link, sizeof(link), p, baseurl) != -1)
-		fputs(link, stdout);
+
+	if (baseurl && !uri_hasscheme(p) &&
+	    uri_parse(p, &olduri) != -1 && !olduri.proto[0] &&
+	    uri_makeabs(&newuri, &olduri, &baseuri) != -1 && newuri.proto[0])
+		r = uri_format(link, sizeof(link), &newuri);
+
+	if (r >= 0 && (size_t)r < sizeof(link))
+		printtrimmed(link);
+	else
+		printtrimmed(p);
+
 	*e = c; /* restore NUL byte to original character */
 }
 
-/* always print absolute urls (using global baseurl) */
+/* always print absolute URLs (using global baseurl) */
 void
 string_print_uri(String *s)
 {
@@ -559,10 +570,7 @@ parsetime(const char *s, time_t *tp)
 	    isdigit((unsigned char)s[2]) &&
 	    isdigit((unsigned char)s[3])) {
 		/* formats "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S" or "%Y%m%d%H%M%S" */
-		va[0] = ((s[0] - '0') * 1000) + ((s[1] - '0') * 100) +
-		         ((s[2] - '0') * 10) + (s[3] - '0');
-		vi = 1;
-		s += 4;
+		vi = 0;
 	} else {
 		/* format: "[%a, ]%d %b %Y %H:%M:%S" */
 		/* parse "[%a, ]%d %b %Y " part, then use time parsing as above */
@@ -608,16 +616,17 @@ parsetime(const char *s, time_t *tp)
 	}
 
 	/* parse time parts (and possibly remaining date parts) */
-	for (; *s && vi < 6; ) {
-		if (isdigit((unsigned char)s[0]) && isdigit((unsigned char)s[1])) {
-			va[vi++] = ((s[0] - '0') * 10) + (s[1] - '0');
-			s += 2;
-		} else if (vi > 2 && (*s == '-' || *s == '+' || *s == '.' ||
-		           isspace((unsigned char)*s))) {
-			break;
-		} else {
-			s++;
+	for (; *s && vi < 6; vi++) {
+		for (i = 0, v = 0; i < ((vi == 0) ? 4 : 2) &&
+		                   isdigit((unsigned char)*s); s++, i++) {
+			v = (v * 10) + (*s - '0');
 		}
+		va[vi] = v;
+
+		if ((vi < 2 && *s == '-') ||
+		    (vi == 2 && (*s == 'T' || isspace((unsigned char)*s))) ||
+		    (vi > 2 && *s == ':'))
+			s++;
 	}
 
 	/* skip milliseconds in for example: "%Y-%m-%dT%H:%M:%S.000Z" */
@@ -1017,8 +1026,12 @@ main(int argc, char *argv[])
 	if (pledge("stdio", NULL) == -1)
 		err(1, "pledge");
 
-	if (argc > 1)
-		baseurl = argv[1];
+	if (argc > 1) {
+		if (uri_parse(argv[1], &baseuri) != -1 && baseuri.proto[0])
+			baseurl = argv[1];
+		else
+			errx(1, "baseurl incorrect or too long");
+	}
 
 	memcpy(&(ctx.tag), &notag, sizeof(ctx.tag));
 
