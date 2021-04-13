@@ -1,3 +1,9 @@
+sfeed (0.9.22+leste-1) unstable; urgency=medium
+
+  * Merge branch 'master' into maemo/beowulf
+
+ -- Ivan J. <parazyd@dyne.org>  Tue, 13 Apr 2021 08:35:05 +0200
+
 sfeed (0.9.21+leste-1) unstable; urgency=medium
 
   * Initial Leste packaging.
