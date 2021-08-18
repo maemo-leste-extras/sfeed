@@ -1,6 +1,5 @@
 #include <sys/types.h>
 
-#include <err.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -131,9 +130,9 @@ main(int argc, char *argv[])
 			err(1, "pledge");
 	} else {
 		if (unveil("/", "r") == -1)
-			err(1, "unveil");
+			err(1, "unveil: /");
 		if (unveil(".", "rwc") == -1)
-			err(1, "unveil");
+			err(1, "unveil: .");
 		if (pledge("stdio rpath wpath cpath", NULL) == -1)
 			err(1, "pledge");
 	}

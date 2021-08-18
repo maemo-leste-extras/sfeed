@@ -117,7 +117,8 @@ OS tested
 - FreeBSD
 - DragonFlyBSD
 - Windows (cygwin gcc, mingw).
-- HaikuOS (using libbsd).
+- HaikuOS
+- SerenityOS
 - FreeDOS (djgpp).
 - FUZIX (sdcc -mz80).
 
@@ -308,7 +309,7 @@ advertisements, strip tracking parameters and more.
 				$8 = filterlink($8); # enclosure
 
 				# try to remove tracking pixels: <img/> tags with 1px width or height.
-				gsub("<img[^>]*(width|height)[\s]*=[\s]*[\"'"'"' ]?1[\"'"'"' ]?[^0-9>]+[^>]*>", "", $4);
+				gsub("<img[^>]*(width|height)[[:space:]]*=[[:space:]]*[\"'"'"' ]?1[\"'"'"' ]?[^0-9>]+[^>]*>", "", $4);
 
 				print $0;
 			}'
@@ -379,6 +380,10 @@ enclosure URL (probably some audio file):
 	}
 	END { if (length(url)) { print url; } }'
 
+... or on a file already sorted from newest to oldest:
+
+	awk -F '\t' '$8 { print $8; exit }'
+
 - - -
 
 Over time your feeds file might become quite big. You can archive items of a
@@ -407,7 +412,7 @@ fdm config file (~/.sfeed/fdm.conf):
 		cache "${cachepath}"
 		$maildir = "%[home]/feeds/"
 
-		# Check if message is in in cache by Message-ID.
+		# Check if message is in the cache by Message-ID.
 		match case "^Message-ID: (.*)" in headers
 			action {
 				tag "msgid" value "%1"
@@ -451,7 +456,7 @@ fdm config file (~/.sfeed/fdm.conf):
 		$cachepath = "%[home]/.sfeed/fdm.cache"
 		cache "${cachepath}"
 
-		# Check if message is in in cache by Message-ID.
+		# Check if message is in the cache by Message-ID.
 		match case "^Message-ID: (.*)" in headers
 			action {
 				tag "msgid" value "%1"
@@ -683,7 +688,6 @@ TSV format.
 	#
 	# Usage: create some directory to store the feeds, run this script.
 	#
-	# Assumes "html" for content-type (Newsboat only handles HTML content).
 	# Assumes feednames are unique and a feed title is set.
 	
 	# newsboat cache.db file.
@@ -698,11 +702,10 @@ TSV format.
 	.mode ascii
 	.output
 	SELECT
-		i.pubDate, i.title, i.url, i.content, i.guid, i.author,
-		i.enclosure_url,
-		f.rssurl AS rssurl, f.title AS feedtitle, i.unread --,
-		-- i.id, i.enclosure_type, i.enqueued, i.flags, i.deleted,
-		-- i.base
+		i.pubDate, i.title, i.url, i.content, i.content_mime_type,
+		i.guid, i.author, i.enclosure_url,
+		f.rssurl AS rssurl, f.title AS feedtitle, i.unread
+		-- i.id, i.enclosure_type, i.enqueued, i.flags, i.deleted, i.base
 	FROM rss_feed f
 	INNER JOIN rss_item i ON i.feedurl = f.rssurl
 	ORDER BY
@@ -738,17 +741,25 @@ TSV format.
 		return title;
 	}
 	{
-		fname = feedname($8, $9);
+		fname = feedname($9, $10);
 		if (!feed[fname]++) {
-			print "Writing file: \"" fname "\" (title: " $9 ", url: " $8 ")" > "/dev/stderr";
+			print "Writing file: \"" fname "\" (title: " $10 ", url: " $9 ")" > "/dev/stderr";
 		}
 	
+		contenttype = field($5);
+		if (contenttype == "")
+			contenttype = "html";
+		else if (index(contenttype, "/html") || index(contenttype, "/xhtml"))
+			contenttype = "html";
+		else
+			contenttype = "plain";
+	
 		print $1 "\t" field($2) "\t" field($3) "\t" content($4) "\t" \
-			"html" "\t" field($5) "\t" field($6) "\t" field($7) \
+			contenttype "\t" field($6) "\t" field($7) "\t" field($8) "\t" \
 			> fname;
 	
 		# write URLs of the read items to a file line by line.
-		if ($10 == "0") {
+		if ($11 == "0") {
 			print $3 > "urls";
 		}
 	}'
